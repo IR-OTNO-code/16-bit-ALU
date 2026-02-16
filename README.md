@@ -24,7 +24,7 @@ Before operations are performed, the inputs can be conditionally inverted:
 - Input A can be selected as **A** or **!A**
 - Input B can be selected as **B** or **!B**
 
-This is controlled by bits 0 and 1 of the opcode using 2-input multiplexers.
+This is controlled by bits 4 and 5 of the opcode using 2-input multiplexers.
 
 ## Opcode Format
 
@@ -32,29 +32,31 @@ The 6-bit opcode controls the ALU operation as follows:
 
 | Bit | Name | Function |
 |-----|------|----------|
-| b0  | SEL_A | Selects A (0) or !A (1) using a 2-input MUX |
-| b1  | SEL_B | Selects B (0) or !B (1) using a 2-input MUX |
-| b2  | OP_SEL | **Arithmetic**: ADD (0) or SUB (1)<br>**Logic**: MUX selector bit 0 |
-| b3  | LOGIC_SEL1 | Logic unit MUX selector bit 1 |
-| b4  | LOGIC_SEL2 | Logic unit MUX selector bit 2 |
-| b5  | UNIT_SEL | Selects Arithmetic (0) or Logic (1) unit |
+| b5  | SEL_A | Selects A (0) or !A (1) using a 2-input MUX |
+| b4  | SEL_B | Selects B (0) or !B (1) using a 2-input MUX |
+| b3  | OP_SEL | **Arithmetic**: ADD (0) or SUB (1)<br>**Logic**: MUX selector bit 0 |
+| b2  | LOGIC_SEL1 | Logic unit MUX selector bit 1 |
+| b1  | LOGIC_SEL2 | Logic unit MUX selector bit 2 |
+| b0  | UNIT_SEL | Selects Arithmetic (0) or Logic (1) unit |
 
 ### Opcode Bit Assignment
 ```
   b5   b4   b3   b2   b1   b0
   |    |    |    |    |    |
-  |    |    |    |    |    +--- SEL_A: 0=A, 1=!A
-  |    |    |    |    +-------- SEL_B: 0=B, 1=!B
-  |    |    |    +------------- Arithmetic: 0=ADD, 1=SUB
-  |    |    |                   Logic: MUX selector b2
-  |    |    +------------------ Logic: MUX selector b3
-  |    +----------------------- Logic: MUX selector b4
-  +---------------------------- 0=Arithmetic, 1=Logic
+  |    |    |    |    |    +--- 0=Arithmetic, 1=Logic 
+  |    |    |    |    +-------- Logic: MUX selector b4 
+  |    |    |    +------------- Logic: MUX selector b3
+  |    |    |                  
+  |    |    +------------------ Arithmetic: 0=ADD, 1=SUB
+  |    |                        Logic: MUX selector b2
+  |    |      
+  |    +----------------------- SEL_B: 0=B, 1=!B
+  +---------------------------- SEL_A: 0=A, 1=!A   
 ```
 
 ## Logic Unit Multiplexer
 
-When the Logic Unit is selected (b5 = 1), bits b2, b3, and b4 form a 3-bit selector for an 8-input multiplexer:
+When the Logic Unit is selected (b0 = 1), bits b1, b2, and b3 form a 3-bit selector for an 8-input multiplexer:
 
 | MUX Input | b4 | b3 | b2 | Operation |
 |-----------|----|----|-----|-----------|
@@ -71,81 +73,63 @@ When the Logic Unit is selected (b5 = 1), bits b2, b3, and b4 form a 3-bit selec
 
 ### Arithmetic Operations
 
-| Operation | b5 | b4 | b3 | b2 | b1 | b0 | Opcode (binary) | Opcode (hex) |
-|-----------|----|----|----|----|----|----|-----------------|--------------|
-| A + B     | 0  | x  | x  | 0  | 0  | 0  | 000000          | 0x00         |
-| A - B     | 0  | x  | x  | 1  | 0  | 0  | 000100          | 0x04         |
-| A + !B    | 0  | x  | x  | 0  | 1  | 0  | 000010          | 0x02         |
-| !A + B    | 0  | x  | x  | 0  | 0  | 1  | 000001          | 0x01         |
+| Operation | b5 | b4 | b3 | b2 | b1 | b0 | Opcode (binary) | 
+|-----------|----|----|----|----|----|----|-----------------|
+| A + B     | 0  | x  | x  | 0  | 0  | 0  | 000000          |
+| A - B     | 0  | x  | x  | 1  | 0  | 0  | 011000          | 
+| A + !B    | 0  | x  | x  | 0  | 1  | 0  | 010010          | 
+| !A + B    | 0  | x  | x  | 0  | 0  | 1  | 100000          | 
 
 *Note: For arithmetic operations, bits b4 and b3 are don't care (x)*
 
 ### Logic Operations
 
-| Operation | b5 | b4 | b3 | b2 | b1 | b0 | Opcode (binary) | Opcode (hex) |
-|-----------|----|----|----|----|----|----|-----------------|--------------|
-| NOT A (!A)| 1  | 0  | 0  | 0  | 0  | 0  | 100000          | 0x20         |
-| NOT B (!B)| 1  | 0  | 0  | 1  | 0  | 0  | 100100          | 0x24         |
-| A AND B   | 1  | 0  | 1  | 0  | 0  | 0  | 101000          | 0x28         |
-| A NAND B  | 1  | 0  | 1  | 1  | 0  | 0  | 101100          | 0x2C         |
-| A OR B    | 1  | 1  | 0  | 0  | 0  | 0  | 110000          | 0x30         |
-| A NOR B   | 1  | 1  | 0  | 1  | 0  | 0  | 110100          | 0x34         |
-| A XOR B   | 1  | 1  | 1  | 0  | 0  | 0  | 111000          | 0x38         |
+| Operation | b5 | b4 | b3 | b2 | b1 | b0 | Opcode (binary) |
+|-----------|----|----|----|----|----|----|-----------------|
+| NOT A (!A)| 1  | 0  | 0  | 0  | 0  | 0  | 100001          |
+| NOT B (!B)| 1  | 0  | 0  | 1  | 0  | 0  | 010011          |
+| A AND B   | 1  | 0  | 1  | 0  | 0  | 0  | 000101          | 
+| A NAND B  | 1  | 0  | 1  | 1  | 0  | 0  | 000111          | 
+| A OR B    | 1  | 1  | 0  | 0  | 0  | 0  | 001001          | 
+| A NOR B   | 1  | 1  | 0  | 1  | 0  | 0  | 001011          |
+| A XOR B   | 1  | 1  | 1  | 0  | 0  | 0  | 001101          |
 
-*Note: b1 and b0 can be used to invert inputs before logic operations*
+*Note: b5 and b4 can be used to invert inputs before logic operations*
 
 ## Block Diagram
 ```
-         +------------------+
-    A ---| 2:1 MUX (SEL_A) |---+
-         +------------------+   |
-              (b0)              |     +-------------------+
-                                +---->|                   |
-                                      |  Arithmetic Unit  |--+
-                                +---->|   (ADD/SUB)       |  |
-         +------------------+   |     +-------------------+  |
-    B ---| 2:1 MUX (SEL_B) |---+              (b2)          |
-         +------------------+                               |    +-------+
-              (b1)                                          +--->|       |
-                                                            |    | 2:1   |---> Result
-         +------------------+                               |    | MUX   |    (16-bit)
-         |                  |                               +--->|       |
-         |  Logic Unit      |-------------------------------+    +-------+
-         |  (8:1 MUX)       |                                       (b5)
-         |                  |
-         +------------------+
-           (b4, b3, b2)
+     ADD BLOCK DIAGRAM
 ```
 
 ## Usage Examples
 
 ### Example 1: Add A and B
 ```
-Opcode: 000000 (0x00)
+Opcode: 000000 
 Operation: A + B
 ```
 
 ### Example 2: Subtract B from A
 ```
-Opcode: 000100 (0x04)
+Opcode: 011000 
 Operation: A - B
 ```
 
 ### Example 3: AND operation
 ```
-Opcode: 101000 (0x28)
+Opcode: 000111 
 Operation: A AND B
 ```
 
 ### Example 4: XOR operation
 ```
-Opcode: 111000 (0x38)
+Opcode: 001101 
 Operation: A XOR B
 ```
 
 ### Example 5: NOT A
 ```
-Opcode: 100000 (0x20)
+Opcode: 100001
 Operation: !A
 ```
 
@@ -160,7 +144,6 @@ Operation: !A
 
 Feel free to contribute to this project by submitting issues or pull requests.
 
-## License
 
 ## License
 
