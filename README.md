@@ -162,4 +162,6 @@ Feel free to contribute to this project by submitting issues or pull requests.
 
 ## License
 
-[Specify your license here]
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/IR-OTNO-code/16-bit-ALU/blob/main/LICENSE) file for details.
