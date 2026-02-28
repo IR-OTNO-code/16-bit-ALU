@@ -96,10 +96,7 @@ When the Logic Unit is selected (b0 = 1), bits b1, b2, and b3 form a 3-bit selec
 
 *Note: b5 and b4 can be used to invert inputs before logic operations*
 
-## Block Diagram
-```
-    I WILL ADD A BLOCK DIAGRAM
-```
+
 
 ## Usage Examples
 
