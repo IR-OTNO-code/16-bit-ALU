@@ -40,60 +40,40 @@ Input conditioning allows either operand to be inverted before it reaches the fu
 
 ## Architecture
 
-The ALU is composed of three hierarchical subcircuits:
+The ALU is composed of three hierarchical subcircuits.
 
-```
-              ┌─────────────────────────────────────────────┐
-              │                   ALU                        │
-              │                                              │
-  in0 ──┬──► [MUX A] ──► a_cond ──┬──► [AU] ──► au_result  │
-        │     (SEL_A)              │                 │       │
-        │                         └──► [LU] ──► lu_result   │
-  in1 ──┼──► [MUX B] ──► b_cond ──┘         │       │       │
-        │     (SEL_B)                        │    [MUX OUT]──┼──► Data_out
-        │                                    │       │       │
-  opcode┴────────────────────────────────────┘   [FLAGS] ───┼──► flag
-        │                                                    │
-        └────────────────────────────────────────────────────┘
-```
+**ALU (top level)** routes operands through input conditioning MUXes, dispatches to the AU or LU, selects the final output, and assembles the flag register.
 
-### Subcircuits
+**AU (Arithmetic Unit)** is a ripple-carry adder built from 16 chained 1-bit adders. It computes `a_cond + b_cond + C_in` and outputs the 16-bit result along with carry-out (C) and overflow (V). Subtraction is performed via two's complement: `A − B = A + ~B + 1`.
 
-**ALU (top level)** — Routes operands through input conditioning MUXes, dispatches to AU or LU, selects the final output, and assembles the flag register.
-
-**AU (Arithmetic Unit)** — A ripple-carry adder built from 16 chained 1-bit adders. Computes `a_cond + b_cond + C_in`. Subtraction is performed via two's complement: `A − B = A + ~B + 1`. Outputs the 16-bit result, carry-out (C), and overflow (V).
-
-**LU (Logic Unit)** — An 8-input, 16-bit-wide multiplexer. The 3-bit selector (opcode bits `b3b2b1`) chooses from eight logic functions applied to the conditioned inputs.
+**LU (Logic Unit)** is an 8-input, 16-bit-wide multiplexer. A 3-bit selector formed by opcode bits `b3b2b1` chooses one of eight logic functions applied to the conditioned inputs.
 
 ### Input Conditioning
 
-Before any operation, each operand passes through a 2-to-1 MUX:
+Before any operation, each operand passes through a 2-to-1 MUX controlled by the two MSBs of the opcode:
 
-| Opcode bit | Controls | `0` → | `1` → |
+| Opcode bit | Controls | `0` | `1` |
 |---|---|---|---|
 | `b5` | SEL_A | A passes through | A is inverted (`!A`) |
 | `b4` | SEL_B | B passes through | B is inverted (`!B`) |
 
-The conditioned values `a_cond` and `b_cond` are fed into both the AU and LU.
+The conditioned values `a_cond` and `b_cond` feed both the AU and the LU simultaneously.
 
 ---
 
 ## Opcode Format
 
-```
-  b5   b4   b3   b2   b1   b0
-  │    │    │    │    │    │
-  │    │    │    │    │    └─── Unit select: 0 = Arithmetic, 1 = Logic
-  │    │    │    │    └──────── Logic MUX selector, bit 1
-  │    │    │    └─────────── Logic MUX selector, bit 2
-  │    │    └──────────────── Arithmetic: C_in (0 = ADD, 1 = SUB)
-  │    │                      Logic: MUX selector, bit 3
-  │    └───────────────────── SEL_B: 0 = B,  1 = !B
-  └────────────────────────── SEL_A: 0 = A,  1 = !A
-```
+| Bit | Name | Function |
+|:---:|---|---|
+| `b5` | SEL_A | `0` = use A,  `1` = use !A |
+| `b4` | SEL_B | `0` = use B,  `1` = use !B |
+| `b3` | OP_SEL / MUX bit 2 | Arithmetic: `0` = ADD, `1` = carry-in for SUB. Logic: MUX selector MSB |
+| `b2` | MUX bit 1 | Logic MUX selector (ignored for arithmetic) |
+| `b1` | MUX bit 0 | Logic MUX selector (ignored for arithmetic) |
+| `b0` | UNIT_SEL | `0` = Arithmetic unit,  `1` = Logic unit |
 
-> **Note:** For arithmetic operations (`b0 = 0`), bits `b2` and `b1` are don't-cares.  
-> For logic operations (`b0 = 1`), bit `b3` doubles as MUX selector bit 2 (MSB of the 3-bit select).
+> For arithmetic operations (`b0 = 0`), bits `b2` and `b1` are don't-cares.  
+> For logic operations (`b0 = 1`), bits `b3b2b1` together form the 3-bit LU MUX selector.
 
 ---
 
