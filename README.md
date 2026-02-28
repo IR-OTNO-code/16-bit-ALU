@@ -60,8 +60,8 @@ When the Logic Unit is selected (b0 = 1), bits b1, b2, and b3 form a 3-bit selec
 
 | MUX Input | b4 | b3 | b2 | Operation |
 |-----------|----|----|-----|-----------|
-| in0 | 0 | 0 | 0 | !A |
-| in1 | 0 | 0 | 1 | !B |
+| in0 | 0 | 0 | 0 |  A |
+| in1 | 0 | 0 | 1 |  B |
 | in2 | 0 | 1 | 0 | A AND B |
 | in3 | 0 | 1 | 1 | A NAND B |
 | in4 | 1 | 0 | 0 | A OR B |
@@ -75,30 +75,30 @@ When the Logic Unit is selected (b0 = 1), bits b1, b2, and b3 form a 3-bit selec
 
 | Operation | b5 | b4 | b3 | b2 | b1 | b0 | Opcode (binary) | 
 |-----------|----|----|----|----|----|----|-----------------|
-| A + B     | 0  | x  | x  | 0  | 0  | 0  | 000000          |
-| A - B     | 0  | x  | x  | 1  | 0  | 0  | 011000          | 
-| A + !B    | 0  | x  | x  | 0  | 1  | 0  | 010010          | 
-| !A + B    | 0  | x  | x  | 0  | 0  | 1  | 100000          | 
+| A + B     | 0  | 0  | 0  | 0  | 0  | 0  | 000000          |
+| A - B     | 0  | 1  | 1  | x  | x  | 0  | 011000          | 
+| A + !B    | 0  | 1  | 0  | x  | x  | 0  | 010010          | 
+| !A + B    | 1  | 0  | 0  | x  | x  | 0  | 100000          | 
 
-*Note: For arithmetic operations, bits b4 and b3 are don't care (x)*
+*Note: For arithmetic operations, bits b1 and b2 are don't care (x)*
 
 ### Logic Operations
 
 | Operation | b5 | b4 | b3 | b2 | b1 | b0 | Opcode (binary) |
 |-----------|----|----|----|----|----|----|-----------------|
-| NOT A (!A)| 1  | 0  | 0  | 0  | 0  | 0  | 100001          |
-| NOT B (!B)| 1  | 0  | 0  | 1  | 0  | 0  | 010011          |
-| A AND B   | 1  | 0  | 1  | 0  | 0  | 0  | 000101          | 
-| A NAND B  | 1  | 0  | 1  | 1  | 0  | 0  | 000111          | 
-| A OR B    | 1  | 1  | 0  | 0  | 0  | 0  | 001001          | 
-| A NOR B   | 1  | 1  | 0  | 1  | 0  | 0  | 001011          |
-| A XOR B   | 1  | 1  | 1  | 0  | 0  | 0  | 001101          |
+| NOT A (!A)| 1  | x  | 0  | 0  | 0  | 1  | 100001          |
+| NOT B (!B)| x  | 0  | 0  | 1  | 0  | 1  | 010011          |
+| A AND B   | 0  | 0  | 0  | 1  | 0  | 1  | 000101          | 
+| A NAND B  | 0  | 0  | 0  | 1  | 1  | 1  | 000111          | 
+| A OR B    | 0  | 0  | 1  | 0  | 0  | 1  | 001001          | 
+| A NOR B   | 0  | 0  | 1  | 0  | 1  | 1  | 001011          |
+| A XOR B   | 0  | 0  | 1  | 1  | 0  | 1  | 001101          |
 
 *Note: b5 and b4 can be used to invert inputs before logic operations*
 
 ## Block Diagram
 ```
-     ADD BLOCK DIAGRAM
+    I WILL ADD A BLOCK DIAGRAM
 ```
 
 ## Usage Examples
@@ -137,7 +137,7 @@ Operation: !A
 
 - The ALU uses 2-input multiplexers for input conditioning (A/!A and B/!B selection)
 - The Logic Unit is implemented using an 8-input multiplexer
-- The final output is selected between Arithmetic and Logic units using bit b5
+- The final output is selected between Arithmetic and Logic units using bit b0
 - All operations are performed on 16-bit data
 
 ## Contributing
