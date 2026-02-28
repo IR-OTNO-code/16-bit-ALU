@@ -11,7 +11,8 @@
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
       <a name="labelloc" val="east"/>
-      <a name="width" val="5"/>
+      <a name="type" val="output"/>
+      <a name="width" val="16"/>
     </tool>
   </lib>
   <lib desc="#Gates" name="1"/>
@@ -228,18 +229,18 @@
     <wire from="(290,350)" to="(290,380)"/>
     <wire from="(290,350)" to="(310,350)"/>
     <wire from="(310,460)" to="(310,470)"/>
-    <wire from="(310,470)" to="(310,720)"/>
-    <wire from="(310,720)" to="(620,720)"/>
+    <wire from="(310,470)" to="(310,700)"/>
+    <wire from="(310,700)" to="(630,700)"/>
     <wire from="(320,360)" to="(320,400)"/>
-    <wire from="(320,400)" to="(350,400)"/>
+    <wire from="(320,400)" to="(390,400)"/>
     <wire from="(330,450)" to="(360,450)"/>
     <wire from="(340,340)" to="(370,340)"/>
-    <wire from="(350,400)" to="(350,680)"/>
-    <wire from="(350,680)" to="(630,680)"/>
     <wire from="(360,410)" to="(360,450)"/>
     <wire from="(360,410)" to="(450,410)"/>
     <wire from="(370,340)" to="(370,370)"/>
     <wire from="(370,370)" to="(450,370)"/>
+    <wire from="(390,400)" to="(390,730)"/>
+    <wire from="(390,730)" to="(620,730)"/>
     <wire from="(430,360)" to="(430,670)"/>
     <wire from="(430,360)" to="(550,360)"/>
     <wire from="(430,670)" to="(640,670)"/>
@@ -258,8 +259,7 @@
     <wire from="(520,630)" to="(630,630)"/>
     <wire from="(600,790)" to="(610,790)"/>
     <wire from="(610,750)" to="(610,790)"/>
-    <wire from="(620,720)" to="(620,730)"/>
-    <wire from="(630,680)" to="(630,730)"/>
+    <wire from="(630,700)" to="(630,730)"/>
     <wire from="(640,650)" to="(640,670)"/>
     <wire from="(640,670)" to="(640,730)"/>
     <wire from="(650,650)" to="(650,730)"/>
