@@ -1,0 +1,423 @@
+# Logisim Evolution Test Vector File
+# 16-bit ALU | https://github.com/IR-OTNO-code/16-bit-ALU
+# Extreme edge cases - All values binary
+# Flag = NZCV (N=bit3, Z=bit2, C=bit1, V=bit0)
+#
+in0[16] in1[16] opcode[6] Data_out[16] flag[4]
+
+# =============================================================================
+# ADD  (opcode 000000) — Tests the adder with boundary and overflow conditions
+# =============================================================================
+
+# Zero identity: adding zero to zero must produce zero and set only Z.
+# Confirms the zero detector and that no spurious N/C/V flags appear.
+# 0x0000 + 0x0000 = 0x0000 | N=0 Z=1 C=0 V=0
+0000000000000000 0000000000000000 000000 0000000000000000 0100
+
+# Additive identity (A+0): maximum positive value plus zero must return unchanged.
+# Verifies no flags are set when the result is a large but valid positive number.
+# 0x7FFF + 0x0000 = 0x7FFF | N=0 Z=0 C=0 V=0
+0111111111111111 0000000000000000 000000 0111111111111111 0000
+
+# Additive identity (0+B): same as above but operands swapped.
+# Confirms commutativity — the adder must treat A and B symmetrically.
+# 0x0000 + 0x7FFF = 0x7FFF | N=0 Z=0 C=0 V=0
+0000000000000000 0111111111111111 000000 0111111111111111 0000
+
+# Most negative value plus zero: result stays negative, only N should be set.
+# Tests that 0x8000 is correctly identified as negative without triggering C or V.
+# 0x8000 + 0x0000 = 0x8000 | N=1 Z=0 C=0 V=0
+1000000000000000 0000000000000000 000000 1000000000000000 1000
+
+# All-ones plus zero: result is all-ones (0xFFFF), which is -1 in two's complement.
+# Only N should be set — no carry since one operand is zero.
+# 0xFFFF + 0x0000 = 0xFFFF | N=1 Z=0 C=0 V=0
+1111111111111111 0000000000000000 000000 1111111111111111 1000
+
+# All-ones plus all-ones: produces 0xFFFE with a carry out.
+# Tests that C is set when unsigned overflow occurs, and N reflects the MSB.
+# 0xFFFF + 0xFFFF = 0xFFFE | N=1 Z=0 C=1 V=0
+1111111111111111 1111111111111111 000000 1111111111111110 1010
+
+# Signed overflow at the positive boundary: 0x7FFF+1 wraps to 0x8000.
+# pos+pos=neg is the classic V condition. N and V must both be set, C must not.
+# 0x7FFF + 0x0001 = 0x8000 | N=1 Z=0 C=0 V=1
+0111111111111111 0000000000000001 000000 1000000000000000 1001
+
+# Double max_pos: 0x7FFF+0x7FFF=0xFFFE. Overflow without carry.
+# Both operands are positive, result is negative — V and N set, C stays 0.
+# 0x7FFF + 0x7FFF = 0xFFFE | N=1 Z=0 C=0 V=1
+0111111111111111 0111111111111111 000000 1111111111111110 1001
+
+# Double max_neg: 0x8000+0x8000 wraps all the way to zero with carry and overflow.
+# neg+neg=pos is overflow. All three flags Z, C, and V must fire simultaneously.
+# 0x8000 + 0x8000 = 0x0000 | N=0 Z=1 C=1 V=1
+1000000000000000 1000000000000000 000000 0000000000000000 0111
+
+# max_neg + 0xFFFF (-32768 + -1): produces 0x7FFF with carry.
+# neg+neg=pos triggers V, carry out also occurs. Result is positive so N=0.
+# 0x8000 + 0xFFFF = 0x7FFF | N=0 Z=0 C=1 V=1
+1000000000000000 1111111111111111 000000 0111111111111111 0011
+
+# Additive inverse pair A: 1 + (-1) = 0 with carry.
+# The only correct result is Z=1 and C=1. No overflow since signs differ.
+# 0x0001 + 0xFFFF = 0x0000 | N=0 Z=1 C=1 V=0
+0000000000000001 1111111111111111 000000 0000000000000000 0110
+
+# Additive inverse pair B: same values swapped to confirm commutativity of carry+zero.
+# 0xFFFF + 0x0001 = 0x0000 | N=0 Z=1 C=1 V=0
+1111111111111111 0000000000000001 000000 0000000000000000 0110
+
+# Adjacent boundary values: max_pos + max_neg = 0xFFFF (-1), no overflow.
+# Signs differ so V cannot be set regardless of the result sign.
+# 0x7FFF + 0x8000 = 0xFFFF | N=1 Z=0 C=0 V=0
+0111111111111111 1000000000000000 000000 1111111111111111 1000
+
+# One step below max_pos: 1 + 0x7FFE = 0x7FFF. No flags at all.
+# Verifies the adder does not prematurely trigger overflow near the boundary.
+# 0x0001 + 0x7FFE = 0x7FFF | N=0 Z=0 C=0 V=0
+0000000000000001 0111111111111110 000000 0111111111111111 0000
+
+# Minimal positive addition: 1+1=2. Baseline sanity check with no flags.
+# 0x0001 + 0x0001 = 0x0002 | N=0 Z=0 C=0 V=0
+0000000000000001 0000000000000001 000000 0000000000000010 0000
+
+# =============================================================================
+# SUB  (opcode 011000) — Implemented as A + ~B + 1 (two's complement subtraction)
+# C=1 means no borrow (A >= B unsigned). C=0 means borrow occurred.
+# =============================================================================
+
+# Zero minus zero: result is zero, no borrow, so both Z and C are set.
+# 0x0000 - 0x0000 = 0x0000 | N=0 Z=1 C=1 V=0
+0000000000000000 0000000000000000 011000 0000000000000000 0110
+
+# max_pos minus itself: confirms self-subtraction always yields zero with no borrow.
+# 0x7FFF - 0x7FFF = 0x0000 | N=0 Z=1 C=1 V=0
+0111111111111111 0111111111111111 011000 0000000000000000 0110
+
+# All-ones minus itself: same self-subtraction test for the all-ones pattern.
+# 0xFFFF - 0xFFFF = 0x0000 | N=0 Z=1 C=1 V=0
+1111111111111111 1111111111111111 011000 0000000000000000 0110
+
+# max_neg minus itself: self-subtraction for the most negative value.
+# 0x8000 - 0x8000 = 0x0000 | N=0 Z=1 C=1 V=0
+1000000000000000 1000000000000000 011000 0000000000000000 0110
+
+# 1 minus 0: result is 1, no borrow. Only C is set to indicate no borrow.
+# 0x0001 - 0x0000 = 0x0001 | N=0 Z=0 C=1 V=0
+0000000000000001 0000000000000000 011000 0000000000000001 0010
+
+# max_pos minus 0: large positive result, no borrow. Only C set.
+# 0x7FFF - 0x0000 = 0x7FFF | N=0 Z=0 C=1 V=0
+0111111111111111 0000000000000000 011000 0111111111111111 0010
+
+# 0 minus 1: produces 0xFFFF (borrow). N set, C=0 to indicate borrow. No overflow.
+# 0x0000 - 0x0001 = 0xFFFF | N=1 Z=0 C=0 V=0
+0000000000000000 0000000000000001 011000 1111111111111111 1000
+
+# max_neg minus 1: neg-pos=pos is signed overflow. Result 0x7FFF, V and C set.
+# 0x8000 - 0x0001 = 0x7FFF | N=0 Z=0 C=1 V=1
+1000000000000000 0000000000000001 011000 0111111111111111 0011
+
+# max_pos minus 0xFFFF (-1): pos-neg=neg is signed overflow. N and V set, no carry.
+# 0x7FFF - 0xFFFF = 0x8000 | N=1 Z=0 C=0 V=1
+0111111111111111 1111111111111111 011000 1000000000000000 1001
+
+# 0 minus max_neg: subtracting the most negative number from zero.
+# pos-neg=neg is overflow. Result is 0x8000, so N and V set, no carry.
+# 0x0000 - 0x8000 = 0x8000 | N=1 Z=0 C=0 V=1
+0000000000000000 1000000000000000 011000 1000000000000000 1001
+
+# 0xFFFF minus 1: large negative value minus small positive. N and C set.
+# 0xFFFF - 0x0001 = 0xFFFE | N=1 Z=0 C=1 V=0
+1111111111111111 0000000000000001 011000 1111111111111110 1010
+
+# 1 minus 0xFFFF: small positive minus large negative (borrow). Result is 2.
+# Signs differ so no overflow. No borrow flag set since C=0, result is small positive.
+# 0x0001 - 0xFFFF = 0x0002 | N=0 Z=0 C=0 V=0
+0000000000000001 1111111111111111 011000 0000000000000010 0000
+
+# =============================================================================
+# ADD !A+B  (opcode 100000) — A is inverted before addition, B is unchanged
+# =============================================================================
+
+# !0x0000 + 0x0000 = 0xFFFF + 0 = 0xFFFF. Inverting zero gives all-ones.
+# Result is negative. Only N set.
+# !0x0000 + 0x0000 = 0xFFFF | N=1 Z=0 C=0 V=0
+0000000000000000 0000000000000000 100000 1111111111111111 1000
+
+# !0xFFFF + 0x0000 = 0x0000 + 0 = 0x0000. Inverting all-ones gives zero, carry out.
+# Z and C set. Tests that C comes from the inversion arithmetic, not a logic path.
+# !0xFFFF + 0x0000 = 0x0000 | N=0 Z=1 C=1 V=0
+1111111111111111 0000000000000000 100000 0000000000000000 0100
+
+# !0xFFFF + 0x0001 = 0x0000 + 0x0001 = 0x0001. Small non-zero result, no flags.
+# !0xFFFF + 0x0001 = 0x0001 | N=0 Z=0 C=0 V=0
+1111111111111111 0000000000000001 100000 0000000000000001 0000
+
+# !0x7FFF + 0x8000: !0x7FFF=0x8000, then 0x8000+0x8000=0x0000 with C and V.
+# neg+neg=pos overflow. All of Z, C, V fire simultaneously.
+# !0x7FFF + 0x8000 = 0x0000 | N=0 Z=1 C=1 V=1
+0111111111111111 1000000000000000 100000 0000000000000000 0111
+
+# !0x0001 + 0x0001 = 0xFFFE + 0x0001 = 0xFFFF. Result is -1, only N set.
+# !0x0001 + 0x0001 = 0xFFFF | N=1 Z=0 C=0 V=0
+0000000000000001 0000000000000001 100000 1111111111111111 1000
+
+# !0x8000 + 0x8000 = 0x7FFF + 0x8000 = 0xFFFF. No overflow since signs differ.
+# !0x8000 + 0x8000 = 0xFFFF | N=1 Z=0 C=0 V=0
+1000000000000000 1000000000000000 100000 1111111111111111 1000
+
+# =============================================================================
+# ADD A+!B  (opcode 010010) — B is inverted before addition, A is unchanged
+# =============================================================================
+
+# 0x0000 + !0x0000 = 0x0000 + 0xFFFF = 0xFFFF. Mirror of !A+B zero case.
+# Only N set. Confirms B-side inversion is independent of A-side.
+# 0x0000 + !0x0000 = 0xFFFF | N=1 Z=0 C=0 V=0
+0000000000000000 0000000000000000 010010 1111111111111111 1000
+
+# 0x0000 + !0xFFFF = 0x0000 + 0x0000 = 0x0000 with carry. Z and C set.
+# 0x0000 + !0xFFFF = 0x0000 | N=0 Z=1 C=1 V=0
+0000000000000000 1111111111111111 010010 0000000000000000 0100
+
+# 0xFFFF + !0xFFFF = 0xFFFF + 0x0000 = 0xFFFF. No flags except N.
+# 0xFFFF + !0xFFFF = 0xFFFF | N=1 Z=0 C=0 V=0
+1111111111111111 1111111111111111 010010 1111111111111111 1000
+
+# 0x8000 + !0x7FFF = 0x8000 + 0x8000 = 0x0000 with C and V.
+# Symmetric overflow case to the !A+B version above.
+# 0x8000 + !0x7FFF = 0x0000 | N=0 Z=1 C=1 V=1
+1000000000000000 0111111111111111 010010 0000000000000000 0111
+
+# 0x0001 + !0x0001 = 0x0001 + 0xFFFE = 0xFFFF. Result is -1, only N set.
+# 0x0001 + !0x0001 = 0xFFFF | N=1 Z=0 C=0 V=0
+0000000000000001 0000000000000001 010010 1111111111111111 1000
+
+# 0x8000 + !0x0000 = 0x8000 + 0xFFFF = 0x7FFF with carry and overflow.
+# neg+neg=pos. C and V set, result is positive so N=0.
+# 0x8000 + !0x0000 = 0x7FFF | N=0 Z=0 C=1 V=1
+1000000000000000 0000000000000000 010010 0111111111111111 0011
+
+# =============================================================================
+# NOT A  (opcode 100001) — Bitwise inversion of in0, in1 is ignored
+# =============================================================================
+
+# Inverting zero produces all-ones (0xFFFF). MSB is 1, so N is set.
+# Verifies the full 16-bit inversion path and that in1 has no effect.
+# !0x0000 = 0xFFFF | N=1 Z=0 C=0 V=0
+0000000000000000 0000000000000000 100001 1111111111111111 1000
+
+# Inverting all-ones produces zero. Only Z should be set.
+# !0xFFFF = 0x0000 | N=0 Z=1 C=0 V=0
+1111111111111111 0000000000000000 100001 0000000000000000 0100
+
+# Inverting max_neg (0x8000) produces max_pos (0x7FFF). No flags.
+# Confirms that the MSB bit flips correctly and N is cleared.
+# !0x8000 = 0x7FFF | N=0 Z=0 C=0 V=0
+1000000000000000 0000000000000000 100001 0111111111111111 0000
+
+# Inverting max_pos (0x7FFF) produces max_neg (0x8000). N is set.
+# !0x7FFF = 0x8000 | N=1 Z=0 C=0 V=0
+0111111111111111 0000000000000000 100001 1000000000000000 1000
+
+# Inverting alternating pattern 0xAAAA produces 0x5555. MSB flips to 0, N cleared.
+# !0xAAAA = 0x5555 | N=0 Z=0 C=0 V=0
+1010101010101010 0000000000000000 100001 0101010101010101 0000
+
+# Inverting 0x5555 produces 0xAAAA. MSB flips to 1, N is set.
+# !0x5555 = 0xAAAA | N=1 Z=0 C=0 V=0
+0101010101010101 0000000000000000 100001 1010101010101010 1000
+
+# Inverting 0x0001 (only LSB set) produces 0xFFFE (all bits except LSB).
+# Result MSB is 1, so N is set.
+# !0x0001 = 0xFFFE | N=1 Z=0 C=0 V=0
+0000000000000001 0000000000000000 100001 1111111111111110 1000
+
+# Inverting 0xFF00 (upper byte set) produces 0x00FF (lower byte set). N cleared.
+# Tests byte-boundary inversion — upper and lower bytes swap roles.
+# !0xFF00 = 0x00FF | N=0 Z=0 C=0 V=0
+1111111100000000 0000000000000000 100001 0000000011111111 0000
+
+# =============================================================================
+# NOT B  (opcode 010011) — Bitwise inversion of in1, in0 is ignored
+# =============================================================================
+
+# Inverting zero on the B input produces all-ones. N set, confirms B-path works.
+# !0x0000 = 0xFFFF | N=1 Z=0 C=0 V=0
+0000000000000000 0000000000000000 010011 1111111111111111 1000
+
+# Inverting all-ones on the B input produces zero. Only Z set.
+# !0xFFFF = 0x0000 | N=0 Z=1 C=0 V=0
+0000000000000000 1111111111111111 010011 0000000000000000 0100
+
+# Inverting max_neg on the B input produces max_pos. No flags.
+# !0x8000 = 0x7FFF | N=0 Z=0 C=0 V=0
+0000000000000000 1000000000000000 010011 0111111111111111 0000
+
+# Inverting max_pos on the B input produces max_neg. N set.
+# !0x7FFF = 0x8000 | N=1 Z=0 C=0 V=0
+0000000000000000 0111111111111111 010011 1000000000000000 1000
+
+# Inverting alternating 0xAAAA on B produces 0x5555. N cleared.
+# Mirrors the NOT A alternating test to confirm both inversion paths are independent.
+# !0xAAAA = 0x5555 | N=0 Z=0 C=0 V=0
+0000000000000000 1010101010101010 010011 0101010101010101 0000
+
+# =============================================================================
+# AND  (opcode 000101) — Bitwise AND of in0 and in1
+# =============================================================================
+
+# Both inputs zero: result must be zero. Only Z set.
+# 0x0000 & 0x0000 = 0x0000 | N=0 Z=1 C=0 V=0
+0000000000000000 0000000000000000 000101 0000000000000000 0100
+
+# Both inputs all-ones: AND of identical all-one patterns stays all-ones. N set.
+# 0xFFFF & 0xFFFF = 0xFFFF | N=1 Z=0 C=0 V=0
+1111111111111111 1111111111111111 000101 1111111111111111 1000
+
+# Perfectly complementary alternating inputs: no bit position overlaps, result is zero.
+# 0xAAAA & 0x5555 = 0x0000 | N=0 Z=1 C=0 V=0
+1010101010101010 0101010101010101 000101 0000000000000000 0100
+
+# Only the MSB set in both inputs: AND isolates bit 15 only. N set.
+# 0x8000 & 0x8000 = 0x8000 | N=1 Z=0 C=0 V=0
+1000000000000000 1000000000000000 000101 1000000000000000 1000
+
+# Only the LSB set in both inputs: AND isolates bit 0 only. No flags.
+# 0x0001 & 0x0001 = 0x0001 | N=0 Z=0 C=0 V=0
+0000000000000001 0000000000000001 000101 0000000000000001 0000
+
+# All-ones AND zero: zero annihilates all bits. Z set.
+# 0xFFFF & 0x0000 = 0x0000 | N=0 Z=1 C=0 V=0
+1111111111111111 0000000000000000 000101 0000000000000000 0100
+
+# Zero AND all-ones: operand order swapped, result must still be zero.
+# 0x0000 & 0xFFFF = 0x0000 | N=0 Z=1 C=0 V=0
+0000000000000000 1111111111111111 000101 0000000000000000 0100
+
+# High byte set AND low byte set: no bit positions overlap, result is zero.
+# Tests AND across byte boundaries — a common masking scenario.
+# 0xFF00 & 0x00FF = 0x0000 | N=0 Z=1 C=0 V=0
+1111111100000000 0000000011111111 000101 0000000000000000 0100
+
+# =============================================================================
+# NAND  (opcode 000111) — Bitwise NOT of (in0 AND in1)
+# =============================================================================
+
+# Both inputs zero: AND is zero, NAND inverts to all-ones. N set.
+# 0x0000 NAND 0x0000 = 0xFFFF | N=1 Z=0 C=0 V=0
+0000000000000000 0000000000000000 000111 1111111111111111 1000
+
+# Both inputs all-ones: AND is all-ones, NAND inverts to zero. Z set.
+# 0xFFFF NAND 0xFFFF = 0x0000 | N=0 Z=1 C=0 V=0
+1111111111111111 1111111111111111 000111 0000000000000000 0100
+
+# Complementary alternating inputs: AND is zero, NAND produces all-ones. N set.
+# 0xAAAA NAND 0x5555 = 0xFFFF | N=1 Z=0 C=0 V=0
+1010101010101010 0101010101010101 000111 1111111111111111 1000
+
+# Only MSB overlaps: AND gives 0x8000, NAND clears just that bit to give 0x7FFF.
+# Tests single-bit inversion at the MSB. N cleared, no flags.
+# 0x8000 NAND 0x8000 = 0x7FFF | N=0 Z=0 C=0 V=0
+1000000000000000 1000000000000000 000111 0111111111111111 0000
+
+# =============================================================================
+# OR  (opcode 001001) — Bitwise OR of in0 and in1
+# =============================================================================
+
+# Both inputs zero: OR of two zeros must remain zero. Only Z set.
+# 0x0000 | 0x0000 = 0x0000 | N=0 Z=1 C=0 V=0
+0000000000000000 0000000000000000 001001 0000000000000000 0100
+
+# Both inputs all-ones: OR of all-ones stays all-ones. N set.
+# 0xFFFF | 0xFFFF = 0xFFFF | N=1 Z=0 C=0 V=0
+1111111111111111 1111111111111111 001001 1111111111111111 1000
+
+# Complementary alternating inputs: OR fills all bit positions to give all-ones. N set.
+# This is the strongest coverage test for OR — every bit is exercised.
+# 0xAAAA | 0x5555 = 0xFFFF | N=1 Z=0 C=0 V=0
+1010101010101010 0101010101010101 001001 1111111111111111 1000
+
+# Only MSB set in A, B is zero: OR passes the MSB through. N set.
+# Tests that a single set bit in A is preserved correctly.
+# 0x8000 | 0x0000 = 0x8000 | N=1 Z=0 C=0 V=0
+1000000000000000 0000000000000000 001001 1000000000000000 1000
+
+# Only LSB set in A, B is zero: OR passes the LSB through. No flags.
+# 0x0001 | 0x0000 = 0x0001 | N=0 Z=0 C=0 V=0
+0000000000000001 0000000000000000 001001 0000000000000001 0000
+
+# Disjoint byte inputs: high byte in A, low byte in B. OR merges them to all-ones.
+# Tests OR across the byte boundary — common in bit-field assembly operations.
+# 0xFF00 | 0x00FF = 0xFFFF | N=1 Z=0 C=0 V=0
+1111111100000000 0000000011111111 001001 1111111111111111 1000
+
+# =============================================================================
+# NOR  (opcode 001011) — Bitwise NOT of (in0 OR in1)
+# =============================================================================
+
+# Both inputs zero: OR is zero, NOR inverts to all-ones. N set.
+# 0x0000 NOR 0x0000 = 0xFFFF | N=1 Z=0 C=0 V=0
+0000000000000000 0000000000000000 001011 1111111111111111 1000
+
+# All-ones NOR zero: OR gives all-ones, NOR inverts to zero. Z set.
+# 0xFFFF NOR 0x0000 = 0x0000 | N=0 Z=1 C=0 V=0
+1111111111111111 0000000000000000 001011 0000000000000000 0100
+
+# Complementary alternating inputs: OR is all-ones, NOR inverts to zero. Z set.
+# 0xAAAA NOR 0x5555 = 0x0000 | N=0 Z=1 C=0 V=0
+1010101010101010 0101010101010101 001011 0000000000000000 0100
+
+# Only MSB set in both: OR gives 0x8000, NOR clears that bit to give 0x7FFF.
+# Result MSB is 0, so N is cleared. Tests single-bit NOR at the MSB.
+# 0x8000 NOR 0x8000 = 0x7FFF | N=0 Z=0 C=0 V=0
+1000000000000000 1000000000000000 001011 0111111111111111 0000
+
+# Only LSB set in A, B is zero: OR gives 0x0001, NOR inverts to 0xFFFE.
+# MSB of result is 1, so N is set. Tests single-bit NOR at the LSB.
+# 0x0001 NOR 0x0000 = 0xFFFE | N=1 Z=0 C=0 V=0
+0000000000000001 0000000000000000 001011 1111111111111110 1000
+
+# =============================================================================
+# XOR  (opcode 001101) — Bitwise exclusive OR of in0 and in1
+# =============================================================================
+
+# Both inputs zero: XOR of two zeros is zero. Only Z set.
+# 0x0000 ^ 0x0000 = 0x0000 | N=0 Z=1 C=0 V=0
+0000000000000000 0000000000000000 001101 0000000000000000 0100
+
+# Both inputs identical all-ones: XOR of equal values always cancels to zero. Z set.
+# This is the self-cancellation property of XOR — critical for parity logic.
+# 0xFFFF ^ 0xFFFF = 0x0000 | N=0 Z=1 C=0 V=0
+1111111111111111 1111111111111111 001101 0000000000000000 0100
+
+# All-ones XOR zero: XOR with zero is the identity — result equals A. N set.
+# 0xFFFF ^ 0x0000 = 0xFFFF | N=1 Z=0 C=0 V=0
+1111111111111111 0000000000000000 001101 1111111111111111 1000
+
+# Complementary alternating inputs: every bit differs, XOR produces all-ones. N set.
+# 0xAAAA ^ 0x5555 = 0xFFFF | N=1 Z=0 C=0 V=0
+1010101010101010 0101010101010101 001101 1111111111111111 1000
+
+# Same alternating pattern XORed with itself: self-cancellation. Z set.
+# 0xAAAA ^ 0xAAAA = 0x0000 | N=0 Z=1 C=0 V=0
+1010101010101010 1010101010101010 001101 0000000000000000 0100
+
+# Only MSB set in both: MSB cancels, all other bits stay 0. Result is zero. Z set.
+# Tests that XOR correctly handles cancellation at the sign bit.
+# 0x8000 ^ 0x8000 = 0x0000 | N=0 Z=1 C=0 V=0
+1000000000000000 1000000000000000 001101 0000000000000000 0100
+
+# MSB set in A, LSB set in B: no overlap, both bits survive in result. N set.
+# 0x8000 ^ 0x0001 = 0x8001 | N=1 Z=0 C=0 V=0
+1000000000000000 0000000000000001 001101 1000000000000001 1000
+
+# Only LSB set in both: LSB cancels, result is zero. Z set.
+# 0x0001 ^ 0x0001 = 0x0000 | N=0 Z=1 C=0 V=0
+0000000000000001 0000000000000001 001101 0000000000000000 0100
+
+# Checkerboard pattern: 0x5A5A ^ 0xA5A5 = 0xFFFF. Every bit is complementary.
+# Full 16-bit coverage test for XOR — all bits must toggle.
+# 0x5A5A ^ 0xA5A5 = 0xFFFF | N=1 Z=0 C=0 V=0
+0101101001011010 1010010110100101 001101 1111111111111111 1000
